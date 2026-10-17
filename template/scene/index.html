@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Product spot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- caption candidates; add the families your presets (engine.js FONTS) use -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;700;800&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bar: 64px; --bg: #0b0b0d; --panel: #141417; --line: #26262b; --text: #e6e6ea; --dim: #8b8b94; --acc: #ffffff; --tool: #4f8cff; }
+    html, body { margin: 0; padding: 0; background: var(--bg); overflow: hidden; width: 100%; height: 100%; font-family: Inter, system-ui, sans-serif; }
+    #stage { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; transform-origin: 0 0; }
+    canvas { display: block; position: absolute; left: 0; top: 0; }
+
+    /* ---------- captions: type comes from the active font preset (engine.js FONTS -> CSS vars) ---------- */
+    #ui { position: absolute; inset: 0; pointer-events: none; color: #fff;
+          --brand: #ffffff;   /* the product's accent: kicker + wordmark */
+          --hf: Inter; --hw: 600; --ht: -0.02em; --hs: 1; --hl: 1.05; --hws: normal; --hcase: none; --hcol: #fff;
+          --sf: var(--hf); --sw: 400; --st: 0; --ss: 1; --scase: none; --wf: var(--hf); --ww: 600; --wt: -0.02em; --ws: 1; }
+    .copy { position: absolute; left: 0; right: 0; text-align: center; opacity: 0; will-change: transform, opacity;
+      font-family: var(--hf), system-ui, sans-serif; font-weight: var(--hw); letter-spacing: var(--ht); line-height: var(--hl);
+      word-spacing: var(--hws); text-transform: var(--hcase); color: var(--hcol); text-shadow: 0 2px 40px rgba(0,0,0,0.6); }
+    .copy > span { white-space: pre-line; text-wrap: balance; }   /* wrapped lines split evenly, no orphan word */
+    .copy.big { font-size: calc(96px * var(--hs) * var(--k, 1)); }
+    .copy.mid { font-size: calc(72px * var(--hs) * var(--k, 1)); }
+    .copy.small { font-family: var(--sf), system-ui, sans-serif; font-size: calc(34px * var(--ss) * var(--k, 1)); font-weight: var(--sw); letter-spacing: var(--st); text-transform: var(--scase); color: rgba(255,255,255,0.75); }
+    .copy.wordmark { font-family: var(--wf), system-ui, sans-serif; font-size: calc(88px * var(--ws) * var(--k, 1)); font-weight: var(--ww); letter-spacing: var(--wt); text-transform: none; color: var(--brand); text-shadow: none; }
+    /* a small label above a line ("NEW", "STEP 1"...): tracked caps between two rules */
+    .copy.kicker { display: flex; justify-content: center; align-items: center; gap: calc(22px * var(--k, 1));
+      font-family: var(--sf), system-ui, sans-serif; font-weight: 600; font-size: calc(24px * var(--k, 1)); letter-spacing: 0.3em; text-transform: uppercase; color: var(--brand); text-shadow: none; }
+    .copy.kicker::before, .copy.kicker::after { content: ''; width: calc(70px * var(--k, 1)); height: 1.5px; background: currentColor; opacity: 0.8; }
+    .copy.kicker > span { margin-right: -0.3em; }
+
+    /* ---------- caption editor (E / Text; review only) ---------- */
+    #ui.editing .copy.live > span { pointer-events: auto; cursor: move; }
+    #ui.editing .copy.live > span:hover { outline: 2px dashed var(--tool); outline-offset: 10px; }
+    #ui.editing .copy.sel > span { outline: 2px solid var(--tool); outline-offset: 10px; }
+    #ui.editing .copy > span[contenteditable="plaintext-only"] { cursor: text; outline: 2px solid #fff; outline-offset: 10px; }
+    #copyBox { position: fixed; display: none; z-index: 9; pointer-events: none; }
+    #copyBox .grip, #copyBox .side { position: absolute; box-sizing: border-box; background: var(--tool); border: 3px solid #111; border-radius: 4px; pointer-events: auto; }
+    #copyBox .grip { right: -11px; bottom: -11px; width: 18px; height: 18px; cursor: nwse-resize; }
+    #copyBox .side { top: 50%; width: 10px; height: 34px; margin-top: -17px; cursor: ew-resize; }
+    #copyBox .side.l { left: -6px; } #copyBox .side.r { right: -6px; }
+    #copyBox .bar { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; background: rgba(20,20,23,0.95); border: 1px solid #2a2a30; border-radius: 8px; padding: 5px 6px 5px 12px; font: 500 14px/1 Inter, system-ui, sans-serif; color: var(--text); pointer-events: auto; white-space: nowrap; user-select: none; }
+    #copyBox .bar b { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 48px; }
+    #copyBox .bar span { color: var(--dim); margin: 0 4px; }
+    #copyBox .bar button { background: #1d1d21; color: var(--text); border: 1px solid #2a2a30; border-radius: 6px; height: 30px; min-width: 34px; padding: 0 10px; font: inherit; cursor: pointer; }
+    #copyGuide { position: fixed; width: 0; border-left: 1px dashed var(--tool); display: none; z-index: 9; pointer-events: none; }
+
+    /* ---------- transport (review only; hidden in renders) ---------- */
+    #hud { position: fixed; left: 0; right: 0; bottom: 0; height: var(--bar); background: var(--panel); border-top: 1px solid var(--line); color: var(--text); font-size: 12px; z-index: 10; user-select: none; }
+    #hud .row { display: flex; align-items: center; gap: 10px; height: 100%; padding: 0 14px; box-sizing: border-box; }
+    #hud button, #hud select { background: #1d1d21; color: var(--text); border: 1px solid var(--line); border-radius: 6px; height: 28px; min-width: 28px; padding: 0 9px; font: inherit; cursor: pointer; }
+    #hud button:hover { border-color: #3a3a41; background: #24242a; }
+    #hud button.primary { background: var(--acc); color: #000; border-color: var(--acc); font-weight: 600; width: 64px; }
+    #hud button.on { color: var(--tool); border-color: var(--tool); }
+    #hud .tc { font-variant-numeric: tabular-nums; font-family: ui-monospace, Menlo, monospace; min-width: 138px; }
+    #hud .tc span { color: var(--dim); }
+    #hud .timeline { position: relative; flex: 1; height: 28px; }
+    #hud .timeline input { position: absolute; inset: 0; width: 100%; height: 28px; margin: 0; -webkit-appearance: none; background: transparent; cursor: pointer; z-index: 2; }
+    #hud .timeline input::-webkit-slider-runnable-track { height: 4px; background: #2b2b31; border-radius: 2px; }
+    #hud .timeline input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4px; border-radius: 50%; background: var(--acc); border: 2px solid var(--panel); }
+    #hud .marks { position: absolute; left: 6px; right: 6px; top: 12px; height: 4px; pointer-events: none; z-index: 1; }
+    #hud .mark { position: absolute; top: -3px; width: 2px; height: 10px; background: #5a5a63; transform: translateX(-1px); }
+    #hud .mark.note { background: var(--tool); height: 6px; top: -1px; }
+    #hud .beats { display: flex; gap: 4px; }
+    #hud .beats button { color: var(--dim); }
+    #hud .beats button.on { color: var(--text); border-color: #4a4a52; }
+    #hud select { max-width: 180px; }
+    #notes { position: fixed; right: 14px; bottom: calc(var(--bar) + 12px); width: 360px; max-height: 50vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-size: 12px; z-index: 11; display: none; }
+    #notes.open { display: block; }
+    #notes .head { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--dim); }
+    #notes .head button { background: none; border: 0; color: var(--dim); cursor: pointer; font: inherit; }
+    #notes ul { list-style: none; margin: 0; padding: 4px 0; }
+    #notes li { display: flex; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #1c1c20; cursor: pointer; }
+    #notes li .t { font-family: ui-monospace, monospace; color: var(--tool); min-width: 56px; }
+    #notes li .x { margin-left: auto; color: var(--dim); }
+    #notes .empty { padding: 12px 10px; color: var(--dim); }
+    #noteInput { position: fixed; left: 50%; bottom: calc(var(--bar) + 12px); transform: translateX(-50%); width: 520px; display: none; z-index: 12; }
+    #noteInput.open { display: flex; gap: 6px; }
+    #noteInput input { flex: 1; background: var(--panel); border: 1px solid #4a4a52; color: var(--text); border-radius: 6px; height: 32px; padding: 0 10px; font: inherit; font-size: 13px; outline: none; }
+    #noteInput button { background: var(--acc); color: #000; border: 0; border-radius: 6px; padding: 0 12px; font: inherit; font-weight: 600; cursor: pointer; }
+
+    /* ---------- timing drawer: docks right, the stage refits beside it ---------- */
+    #timing { position: fixed; right: 0; top: 0; bottom: var(--bar); width: 520px; display: none; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); color: var(--text); font-size: 15px; z-index: 11; }
+    #timing.open { display: flex; }
+    #timing .head { display: flex; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); color: var(--dim); font-size: 14px; }
+    #timing .head b { color: var(--text); font-weight: 600; }
+    #timing .head em { font-style: normal; color: var(--tool); margin-left: 6px; }
+    #timing .head button { background: none; border: 0; color: var(--dim); cursor: pointer; font: inherit; }
+    #timing .foot { padding: 9px 14px; color: var(--dim); border-top: 1px solid var(--line); font-size: 12px; line-height: 1.45; }
+    #timingDerived { border-top: 0; border-bottom: 1px solid var(--line); color: var(--text); font-variant-numeric: tabular-nums; }
+    #timingList { overflow: auto; flex: 1; padding: 4px 0; }
+    .trow { display: grid; grid-template-columns: 1fr 30px 96px 36px; gap: 8px; align-items: center; padding: 4px 14px; border-left: 3px solid transparent; }
+    .trow[hidden] { display: none !important; }
+    .trow.active { border-left-color: var(--tool); background: #151c2a; }
+    .trow.active .tl { color: #fff; }
+    .trow.past { opacity: 0.45; }
+    .trow .tl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .trow.changed .tl::before { content: '●'; color: var(--tool); margin-right: 6px; font-size: 9px; vertical-align: 1px; }
+    .trow .tu { color: var(--dim); font-size: 11px; text-align: right; }
+    .trow input { width: 100%; box-sizing: border-box; background: #1b1b20; border: 1px solid var(--line); color: var(--text); border-radius: 6px; height: 34px; padding: 0 8px; font: inherit; font-size: 16px; font-variant-numeric: tabular-nums; }
+    .trow .tj { height: 34px; min-width: 34px; background: #1d1d21; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div id="stage"><div id="ui"></div></div>
+
+  <div id="hud"><div class="row">
+    <button id="play" class="primary" title="Space">Play</button>
+    <button id="stepB" title="← one frame · Shift+← one second">‹</button>
+    <button id="stepF" title="→ one frame · Shift+→ one second">›</button>
+    <div class="tc"><b id="tcS">0.000</b>s <span>·</span> f<b id="tcF">0</b> <span>/ <span id="tcN">0</span></span></div>
+    <div class="timeline"><div class="marks" id="marks"></div><input id="scrub" type="range" min="0" max="1" value="0" step="1" /></div>
+    <div class="beats" id="beats"></div>
+    <select id="fontSel" title="Caption type"></select>
+    <button id="fontPrev" title="Previous type preset">‹</button><button id="fontNext" title="Next type preset">›</button>
+    <button id="blurToggle" title="B · motion blur on the paused frame (playback stays sharp)">Blur off</button>
+    <button id="copyToggle" title="E · edit the captions on screen: drag to move, corner or scroll to resize, sides to wrap, double-click to retype">Text</button>
+    <button id="timingToggle" title="T · every action's time, editable live">Timing</button>
+    <button id="noteBtn" title="N · note at this time">+ Note</button>
+    <button id="notesToggle">Notes <b id="noteCount">0</b></button>
+  </div></div>
+
+  <div id="copyBox"><div class="bar"><b id="copySize">96px</b><button id="copySmaller" title="Smaller">A−</button><button id="copyBigger" title="Larger">A+</button><button id="copyType" title="Retype (or double-click the text)">Edit text</button><button id="copyReset" title="Back to the default text, place and size">Reset</button><span>Sides: wrap · Corner: size · Ctrl+Z undo</span></div><div class="side l"></div><div class="side r"></div><div class="grip"></div></div>
+  <div id="copyGuide"></div>
+
+  <div id="timing">
+    <div class="head"><span>Timing · <b id="timingBeat"></b><em id="timingState"></em></span><span><button id="timingAll">All</button> · <button id="timingSave">Save</button> · <button id="timingReset" title="Back to the defaults in film.js">Reset</button> · <button id="timingClose">Close</button></span></div>
+    <div id="timingDerived" class="foot"></div>
+    <div id="timingList"></div>
+    <div class="foot"><b style="color:var(--tool)">Lit</b> = running at the playhead. Dimmed = finished. Only this beat's actions are listed (All shows every one). Seconds from the start; "len" rows are lengths. Actions tied to another one move with it. → jumps there. Every edit saves itself.</div>
+  </div>
+  <div id="noteInput"><input id="noteText" /><button id="noteSave">Save</button></div>
+  <div id="notes"><div class="head"><span>Notes</span><button id="notesClose">Close</button></div><ul id="notesList"></ul></div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "Product",
+  "site": "yourproduct.com",
+  "appUrl": "http://localhost:3000/",
+  "capture": {
+    "dpr": 2,
+    "colorScheme": "dark",
+    "settleMs": 800,
+    "setup": [],
+    "hide": [],
+    "feature": null,
+    "clear": [],
+    "pad": 0
+  }
+}

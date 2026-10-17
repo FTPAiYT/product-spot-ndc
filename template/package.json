@@ -1,0 +1,21 @@
+{
+  "name": "product-spot",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A product film built from the real app: capture, scene, render",
+  "scripts": {
+    "scene": "vite --config vite.config.mjs",
+    "capture": "node capture/plan.mjs",
+    "render": "node render/render.mjs",
+    "sheet": "node render/sheet.mjs",
+    "holds": "node render/holds.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "5.3.0",
+    "playwright": "1.63.0",
+    "postprocessing": "6.39.5",
+    "three": "0.186.0",
+    "vite": "8.3.0"
+  }
+}

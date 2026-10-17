@@ -1,0 +1,5 @@
+node_modules/
+renders/
+assets/review/*.json
+*.mp4
+*.mov
