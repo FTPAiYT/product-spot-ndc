@@ -42,7 +42,10 @@ URL) so it can be captured. Work on a copy if you need to change the app (demo d
    re-render. Taste calls (fonts, copy, a look) are rendered side by side, never argued in prose.
 5. **Sound, only if they want it** (`references/music.md`). Ask once whether the film has music: their own licensed
    track, none, or an original score written in code (`node <skill folder>/add-music.mjs <project>`). Never add music
-   on your own initiative. If there is a track, line the picture's hits up with its beats.
+   on your own initiative. Recommend a real track over the code score. With a track the music comes first and the
+   picture follows: read it (`tools/read-track.py`), pin the story moments to its section changes, put clicks and
+   captions on its accents (`tools/beat-lock.mjs --beats`), and let the screen act on the track (muffle it while an
+   effect is off) instead of adding music on top.
 6. **Final.** `node tools/bake-timing.mjs` (the agreed timing goes into the code), a 4K master
    (`npm run render -- --scale 2 --crf 16 --out renders/final-4k.mp4`), a contact sheet (`npm run sheet`), caption
    read-times (`npm run holds`). Check the file before sending it.

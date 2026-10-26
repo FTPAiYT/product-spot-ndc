@@ -36,6 +36,8 @@ export const cuts = (at) => [at.endCard];
 // OPTIONAL, for a soundtrack cut to the picture (a licensed track or a score added with
 // add-music.mjs): moments the music should hit (clicks, snaps, reveals, cuts, the logo).
 // `key` names the timing row behind it, so tools/beat-lock.mjs can move it onto the beat.
+// Hits that answer one action in turn (cards snapping one after another) share a `group`:
+// they land on consecutive eighths instead of collapsing onto the same beat.
 export const hits = (at) => [{ t: at.lift0, kind: 'reveal', key: 'lift0' }, { t: at.endCard, kind: 'logo', key: 'endCard' }];
 // the music's tempo is set so these two moments fall exactly on downbeats: the whole number
 // of bars nearest `bpm` (or give `bars` to fix the count)
